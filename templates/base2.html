@@ -17,6 +17,12 @@
     <nav class="navbar navbar-default">
         <a href='/' class="navbar-brand">Blogz!</a>
         {% if 'email' in session %}
+        <ul class="nav navbar-nav">
+            <li class="navbar-text"><a href="/index">Home</a></li>
+            <li class="navbar-text"><a href="/blog">Main</a></li>
+            <li class="navbar-text"><a href="/newpost">New Blog</a></li>
+            
+        </ul>
         <ul class="nav navbar-nav navbar-right">
             <li class="navbar-text">{{ session['email'] }}</li>
             <li>
@@ -24,6 +30,7 @@
                     <button class="btn btn-default navbar-btn">log out</button>
                 </form>
             </li>
+            
         </ul>
         {% endif %}
     </nav>
