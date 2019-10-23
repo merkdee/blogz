@@ -103,27 +103,31 @@ def index():
 @app.route('/index')
 def main_page():
     user_id = request.args.get('id')
+    owner = User.query.filter_by(email=session['email']).first() 
 
     if user_id == None:
-        owner = User.query.all()
-        return render_template('index.html',owner=owner, title='Blogz!')
+        users = User.query.all()
+        return render_template('index.html',users=users, title='Blogz!')
 
     else:
-        blog = User.query.get(user_id)
-        return render_template('entry.html',blog=blog, title='Blog Entry')
+        user = User.query.get('user_id')
+        post 
+        return render_template('index.html',user=user, title='Blog Entry')
 
 
 @app.route('/blog')
 def blog():
     blog_id = request.args.get('id')
+    owner = User.query.filter_by(email=session['email']).first()
 
     if blog_id == None:
         posts = Blog.query.all()
-        return render_template('blog.html',posts=posts, title='Build-A-Blog')
+        return render_template('blog.html',posts=posts, title='Blogz!')
 
     else:
         post = Blog.query.get(blog_id)
-        return render_template('entry.html',post=post, title='Blog Entry')
+        owner = User.query.filter_by(email=session['email']).first()
+        return render_template('entry.html',post=post, owner=owner, title='Blog Entry')
 
 
 @app.route('/newpost', methods=['POST', 'GET'])
@@ -143,36 +147,15 @@ def new_post():
             body_error = "Please enter a blog entry"
 
         if not body_error and not title_error:
-            new_entry = Blog(blog_title, blog_body)     
+            new_entry = Blog(blog_title, blog_body)
             db.session.add(new_entry)
-            db.session.commit()  
-
-            blog_id = int(request.form['blog-id'])
-            entry = Blog.query.id(blog_id)
-            entry.private = True   
-            db.session.add(entry)
-            db.session.commit()   
-            return redirect('/blog?id={}'.format(new_entry.id))
+            db.session.commit() 
+            return redirect('/blog?id={}'.format(new_entry.id)) 
         else:
-            new_entry = Blog(blog_title, blog_body)     
-            db.session.add(new_entry)
-            db.session.commit()
-            return redirect('/blog?id={}'.format(new_entry.id))  
-    else:
-        return render_template('newpost.html', title='New Entry', title_error=title_error, body_error=body_error, 
-            blog_title=blog_title, blog_body=blog_body)
+            return render_template('newpost.html', title='New Entry', title_error=title_error, body_error=body_error, 
+                blog_title=blog_title, blog_body=blog_body)
     
     return render_template('newpost.html', title='New Entry')
-
-@app.route('/delete-blog', methods=['POST'])
-def private_blog():
-
-    blog_id = int(request.form['blog-id'])
-    blog = blog.query.get(blog_id)
-    db.session.add(blog)
-    db.session.commit()
-
-    return redirect('/')
 
 
 if __name__ == '__main__':
