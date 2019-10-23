@@ -16,9 +16,10 @@ class Blog(db.Model):
     body = db.Column(db.Text)
     owner_id = db.Column(db.Integer,db.ForeignKey('user.id'))
     
-    def __init__(self, title, body):
+    def __init__(self, title, body, owner):
         self.title = title
         self.body = body
+        self.owner = owner
 
 class User(db.Model):
 
@@ -31,13 +32,14 @@ class User(db.Model):
         self.email = email
         self.pw_hash = make_pw_hash(password)
 
-
+#directing user to either login in or signup before entering site
 @app.before_request
 def require_login():
     allowed_routes = ['login', 'signup']
     if request.endpoint not in allowed_routes and 'email' not in session:
         return redirect('/login')
 
+#user login session function 
 @app.route('/login', methods=['POST', 'GET'])
 def login():
     if request.method == 'POST':
@@ -50,11 +52,12 @@ def login():
             return redirect('/index')
         else:
             flash('User password incorrect or user does not exist', 'error')
+            return render_template('login.html', title="Blogz!")
     else:
-        return render_template('login.html')
+        return render_template('login.html', title="Blogz!")
 
 
-@app.route('/signup', methods=['POST', 'GET'])
+@app.route('/signup', methods=['POST', 'GET'])   
 def signup():
     if request.method == 'POST':
         email = request.form['email']
@@ -63,9 +66,22 @@ def signup():
         email_error = ''
         pw_error = ''
         verify_error = ''
-
+    try:
         # TODO - validate user's data
-        
+        if email.count('@') > 1 and '.com' not in email:
+            email_error = "Please submit a valid email."
+            email = ''
+
+        if len(password) > 20 and len(password) < 3:
+            pw_error = "Please enter a valid password. Must be between 3 and 20 characters."
+            password = ''
+
+        if password == verify:
+            verify_error = "Passwords must match. Please re-enter."
+            verify = ''
+
+            return render_template('signup.html', title="signup at Blogz!", email_error=email_error, pw_error=pw_error, verify_error=verify_error,email=email, password=password, verify=verify)
+
         existing_user = User.query.filter_by(email=email).first()
         if not existing_user:
             new_user = User(email, password)
@@ -74,11 +90,11 @@ def signup():
             session['email'] = email
             return redirect('/')
         else:
-            flash("The email <strong>{0}</strong> is already registered".format(email), 'danger')
+            flash("The email <strong>{0}</strong> is already signuped".format(email), 'danger')
 
     return render_template('signup.html')
 
-@app.route('/logout')
+@app.route('/logout', methods=['POST', 'GET'])
 def logout():
     del session['email']
     flash("Logged out",'info')
@@ -100,34 +116,44 @@ def index():
     return render_template('blog.html',title="Blogz!", 
         blogs=blogs)
 
-@app.route('/index')
+@app.route('/index', methods=['POST', 'GET'])
 def main_page():
     user_id = request.args.get('id')
-    owner = User.query.filter_by(email=session['email']).first() 
-
+    
     if user_id == None:
         users = User.query.all()
-        return render_template('index.html',users=users, title='Blogz!')
-
+        return render_template('index.html', users=users, title='Blogz!')
     else:
-        user = User.query.get('user_id')
-        post 
-        return render_template('index.html',user=user, title='Blog Entry')
+        user = User.query.get(blog_id)
+        return render_template('index.html', user=user, title='My Blog Entries')
 
 
-@app.route('/blog')
+@app.route('/blog', methods=['POST', 'GET'])
 def blog():
     blog_id = request.args.get('id')
-    owner = User.query.filter_by(email=session['email']).first()
-
+    user_id = str(request.args.get('user'))
+    
     if blog_id == None:
-        posts = Blog.query.all()
-        return render_template('blog.html',posts=posts, title='Blogz!')
-
+        owner = Blog.query.filter_by(id=user_id).first()
+        posts = Blog.query.filter_by(owner=owner).all()
+        return render_template('blog.html', posts=posts, title='Blogz!')
     else:
         post = Blog.query.get(blog_id)
-        owner = User.query.filter_by(email=session['email']).first()
-        return render_template('entry.html',post=post, owner=owner, title='Blog Entry')
+        return render_template('entry.html', post=post, title='My Blog Entries')
+
+    
+@app.route('/singleuser', methods=['POST', 'GET'])
+def entries():
+    owner = User.query.filter_by(email=session['email']).first()
+    blog_id = request.args.get('id')
+
+    if blog_id == None:
+        posts = Blog.query.filter_by()
+        user = Blog.query.filter_by(owner=owner).all()
+        return render_template('singleuser.html', posts=posts, user=user, title='Blogz!')
+    else:
+        post = Blog.query.get(blog_id)
+        return render_template('entry.html', post=post, title='Blog Entry')
 
 
 @app.route('/newpost', methods=['POST', 'GET'])
@@ -147,7 +173,7 @@ def new_post():
             body_error = "Please enter a blog entry"
 
         if not body_error and not title_error:
-            new_entry = Blog(blog_title, blog_body)
+            new_entry = Blog(blog_title, blog_body, owner)
             db.session.add(new_entry)
             db.session.commit() 
             return redirect('/blog?id={}'.format(new_entry.id)) 
